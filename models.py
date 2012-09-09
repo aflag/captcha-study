@@ -5,7 +5,6 @@ from sklearn import tree
 from sklearn import linear_model
 from sklearn import svm
 from sklearn.neighbors.nearest_centroid import NearestCentroid
-from sklearn.externals import joblib
 
 class ScikitWrapper(object):
     def __init__(self, engine, features_to_use, dataset):

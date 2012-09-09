@@ -114,7 +114,7 @@ values = ''
 for key,value in sorted(annotations.items()):
     values += key + '\n'
 
-process = Popen(['./break_captcha', 'saved'], stdout=PIPE, stdin=PIPE)
+process = Popen(['./break_captcha', 'model/saved'], stdout=PIPE, stdin=PIPE)
 stdout, stderr = process.communicate(values)
 values = stdout.split()
 matches = 0
