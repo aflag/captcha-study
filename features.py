@@ -50,6 +50,9 @@ def border(callback):
 def noiseless(callback):
     return lambda image,features: callback(remove_noise_block(image), features, prefix='noiseless-')
 
+def is_white(color):
+    return color > 200
+
 def x_histogram(image, features, prefix=''):
     width,height = image.size
     for x in range(width):
@@ -72,7 +75,7 @@ def number_of_whites(image, features, prefix=''):
     width,height = image.size
     for x in range(width):
         for y in range(height):
-            if image.getpixel((x,y)) > 245:
+            if is_white(image.getpixel((x,y))):
                 features[prefix+'number_of_whites'] += 1
 
 def number_of_pixels(image, features, prefix=''):
@@ -80,6 +83,46 @@ def number_of_pixels(image, features, prefix=''):
     for x in range(width):
         for y in range(height):
             features[prefix+'number_of_pixels'] += 1
+
+def horizontal_silhouette(image, features, prefix=''):
+    width,height = image.size
+    for y in range(height):
+        for x in range(width):
+            if is_white(_get(image, (x,y))) \
+              and is_white(_get(image, (x+1,y))) \
+              and is_white(_get(image, (x+2,y))) \
+              and is_white(_get(image, (x+3,y))):
+                  features[prefix+'horizontal_silhouette'+str(y)] = x/float(width)
+
+def reversed_horizontal_silhouette(image, features, prefix=''):
+    width,height = image.size
+    for y in range(height):
+        for x in reversed(range(width)):
+            if is_white(_get(image, (x,y))) \
+              and is_white(_get(image, (x-1,y))) \
+              and is_white(_get(image, (x-2,y))) \
+              and is_white(_get(image, (x-3,y))):
+                  features[prefix+'reversed_horizontal_silhouette'+str(y)] = x/float(width)
+
+def vertical_silhouette(image, features, prefix=''):
+    width,height = image.size
+    for x in range(width):
+        for y in range(height):
+            if is_white(_get(image, (x,y))) \
+              and is_white(_get(image, (x,y+1))) \
+              and is_white(_get(image, (x,y+2))) \
+              and is_white(_get(image, (x,y+3))):
+                  features[prefix+'vertical_silhouette'+str(x)] = y/float(height)
+
+def reversed_vertical_silhouette(image, features, prefix=''):
+    width,height = image.size
+    for x in range(width):
+        for y in reversed(range(height)):
+            if is_white(_get(image, (x,y))) \
+              and is_white(_get(image, (x,y-1))) \
+              and is_white(_get(image, (x,y-2))) \
+              and is_white(_get(image, (x,y-3))):
+                  features[prefix+'reversed_vertical_silhouette'+str(x)] = y/float(height)
                 
 class use_features(object):
     def __init__(self, features_to_use):

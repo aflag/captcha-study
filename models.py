@@ -3,6 +3,7 @@ from functools import partial
 from sklearn import naive_bayes
 from sklearn import tree
 from sklearn import linear_model
+from sklearn import svm
 from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn.externals import joblib
 
@@ -18,13 +19,16 @@ class ScikitWrapper(object):
         return self.engine.predict(self.feature_handler.sklearn_format_test(items))
 
 def NaiveBayes(dataset):
-    return ScikitWrapper(naive_bayes.MultinomialNB(), [positions, number_of_pixels, number_of_whites], dataset)
+    return ScikitWrapper(naive_bayes.MultinomialNB(), [reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def DecisionTree(dataset):
-    return ScikitWrapper(tree.DecisionTreeRegressor(), [positions], dataset)
+    return ScikitWrapper(tree.DecisionTreeRegressor(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def SGD(dataset):
-    return ScikitWrapper(linear_model.SGDClassifier(loss="hinge", penalty="l2"), [positions], dataset)
+    return ScikitWrapper(linear_model.SGDClassifier(loss="hinge", penalty="l2"), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
+
+def SVM(dataset):
+    return ScikitWrapper(svm.LinearSVC(), [positions], dataset)
 
 def NN(dataset):
-    return ScikitWrapper(NearestCentroid(), [positions], dataset)
+    return ScikitWrapper(NearestCentroid(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
