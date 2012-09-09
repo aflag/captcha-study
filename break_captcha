@@ -1,0 +1,30 @@
+#!env/bin/python
+import sys
+import Image
+from sklearn.externals import joblib
+from processing import DigitSeparator
+
+def print_number(model, path):
+    with open(path) as f_image:
+        image = Image.open(f_image).convert('L')
+    digit_separator = DigitSeparator(image)
+    digits = digit_separator.get_digits()
+    digits.sort(key=lambda d: d.range)
+    labels = model.predict(map(lambda d: d.image, digits))
+    print ''.join(map(str, labels))
+
+def main():
+    model = joblib.load(sys.argv[1])
+    if len(sys.argv) > 2:
+        print_number(model, sys.argv[2])
+    else:
+        try:
+            while 1:
+                img_path = raw_input()
+                print_number(model, img_path)
+        except EOFError:
+            pass
+
+
+if __name__ == '__main__':
+    main()

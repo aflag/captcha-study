@@ -1,6 +1,7 @@
 import Image
+import pickle
 from vector import EasyVector
-from processing import border_detection, remove_noise_block
+from processing import border_detection, remove_noise_block, _get
 
 class FeatureHandler(object):
     def __init__(self, strategy, training_dataset):
@@ -79,13 +80,19 @@ def number_of_pixels(image, features, prefix=''):
     for x in range(width):
         for y in range(height):
             features[prefix+'number_of_pixels'] += 1
+                
+class use_features(object):
+    def __init__(self, features_to_use):
+        self.features_to_use = features_to_use
 
-def use_features(aggregate):
-    def do(file_path):
+    def __call__(self, arg):
         features = EasyVector()
-        with open(file_path) as f:
-            image = Image.open(f).convert("L")
-            for feature in aggregate:
-                feature(image, features)
+        if isinstance(arg, str):
+            file_path = arg
+            with open(file_path) as f:
+                image = Image.open(f).convert("L")
+        else:
+            image = arg
+        for feature in self.features_to_use:
+            feature(image, features)
         return features
-    return do

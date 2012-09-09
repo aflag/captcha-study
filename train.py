@@ -1,9 +1,11 @@
 import sys
 import random
 import os
+import pickle
 from models import *
+from sklearn.externals import joblib
 
-def make_datasets():
+def make_datasets(train_size=20, test_size=40):
     base_dir = sys.argv[1]
     train_dataset = {}
     test_dataset = {}
@@ -13,8 +15,8 @@ def make_datasets():
         random.shuffle(files)
         if files:
             # the largest label has 63 objects
-            train_dataset[i] = files[:20]
-            test_dataset[i] = files[20:63]
+            train_dataset[i] = files[:train_size]
+            test_dataset[i] = files[train_size:test_size+train_size]
     return train_dataset, test_dataset
 
 def test(model, test_dataset):
@@ -31,9 +33,15 @@ def test(model, test_dataset):
     print 'total:', float(matches)/population
 
 def main():
-    train_dataset, test_dataset = make_datasets()
+    if len(sys.argv) > 2:
+        train_dataset, test_dataset = make_datasets(train_size=60, test_size=0)
+    else:
+        train_dataset, test_dataset = make_datasets()
     model = NN(train_dataset)
-    test(model, test_dataset)
+    if len(sys.argv) > 2:
+        joblib.dump(model, sys.argv[2])
+    else:
+        test(model, test_dataset)
 
 if __name__ == '__main__':
     main()

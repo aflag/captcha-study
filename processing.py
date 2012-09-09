@@ -47,6 +47,11 @@ def remove_noise_block(image):
                 new_img.putpixel((x,y), 255)
     return new_img
 
+class Digit(object):
+    def __init__(self, image, range):
+        self.image = image
+        self.range = range
+
 class DigitSeparator(object):
     EMPTY = False
     NUMBER = True
@@ -143,5 +148,5 @@ class DigitSeparator(object):
         digits = []
         ranges = self.__ranges(blocks)
         for digit_range in self.__choose_ranges(new_image, ranges):
-            digits.append(self.__create_image_from_range(digit_range, new_image))
+            digits.append(Digit(self.__create_image_from_range(digit_range, new_image), digit_range))
         return digits
