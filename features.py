@@ -1,6 +1,6 @@
 import Image
 from vector import EasyVector
-from processing import border_detection
+from processing import border_detection, remove_noise_block
 
 class FeatureHandler(object):
     def __init__(self, strategy, training_dataset):
@@ -45,6 +45,9 @@ class FeatureHandler(object):
 
 def border(callback):
     return lambda image,features: callback(border_detection(image), features, prefix='border-')
+
+def noiseless(callback):
+    return lambda image,features: callback(remove_noise_block(image), features, prefix='noiseless-')
 
 def x_histogram(image, features, prefix=''):
     width,height = image.size

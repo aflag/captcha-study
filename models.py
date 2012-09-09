@@ -17,7 +17,7 @@ class ScikitWrapper(object):
         return self.engine.predict(self.feature_handler.sklearn_format_test(items))
 
 def NaiveBayes(dataset):
-    return ScikitWrapper(naive_bayes.MultinomialNB(), [positions], dataset)
+    return ScikitWrapper(naive_bayes.MultinomialNB(), [positions, number_of_pixels, number_of_whites], dataset)
 
 def DecisionTree(dataset):
     return ScikitWrapper(tree.DecisionTreeRegressor(), [positions], dataset)

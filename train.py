@@ -12,9 +12,9 @@ def make_datasets():
         files = map(lambda name: os.path.join(base_dir, str(i), name), files)
         random.shuffle(files)
         if files:
-            # the largest label has 60 objects
+            # the largest label has 63 objects
             train_dataset[i] = files[:20]
-            test_dataset[i] = files[20:60]
+            test_dataset[i] = files[20:63]
     return train_dataset, test_dataset
 
 def test(model, test_dataset):
