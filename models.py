@@ -27,7 +27,7 @@ def SGD(dataset):
     return ScikitWrapper(linear_model.SGDClassifier(loss="hinge", penalty="l2"), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def SVM(dataset):
-    return ScikitWrapper(svm.LinearSVC(), [positions], dataset)
+    return ScikitWrapper(svm.LinearSVC(), [positions, vertical_symmetry, horizontal_symmetry], dataset)
 
 def NN(dataset):
     return ScikitWrapper(NearestCentroid(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)

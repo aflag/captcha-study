@@ -5,7 +5,8 @@ import pickle
 from models import *
 from sklearn.externals import joblib
 
-def make_datasets(train_size=20, test_size=40):
+# the largest label has 80 objects
+def make_datasets(train_size=20, test_size=50):
     base_dir = sys.argv[1]
     train_dataset = {}
     test_dataset = {}
@@ -14,7 +15,6 @@ def make_datasets(train_size=20, test_size=40):
         files = map(lambda name: os.path.join(base_dir, str(i), name), files)
         random.shuffle(files)
         if files:
-            # the largest label has 63 objects
             train_dataset[i] = files[:train_size]
             test_dataset[i] = files[train_size:test_size+train_size]
     return train_dataset, test_dataset
@@ -22,19 +22,25 @@ def make_datasets(train_size=20, test_size=40):
 def test(model, test_dataset):
     matches = 0
     population = 0
+    per_label_matches = {}
+    per_label_pop = {}
     for label, values in test_dataset.items():
         labels = model.predict(values) 
-        label_matches = len(filter(lambda x: x==label, labels))
-        label_population = len(values)
-        print label, float(label_matches)/label_population
-        matches += label_matches
-        population += label_population
+        for pred_l in labels:
+            if pred_l == label:
+                per_label_matches[pred_l] = per_label_matches.get(pred_l, 0) + 1
+            per_label_pop[pred_l] = per_label_pop.get(pred_l, 0) + 1
+        matches += len(filter(lambda x: x==label, labels))
+        population += len(values)
+
+    for label in sorted(per_label_matches):
+        print label, float(per_label_matches[label])/per_label_pop[label]
 
     print 'total:', float(matches)/population
 
 def main():
     if len(sys.argv) > 2:
-        train_dataset, test_dataset = make_datasets(train_size=60, test_size=0)
+        train_dataset, test_dataset = make_datasets(train_size=70, test_size=0)
     else:
         train_dataset, test_dataset = make_datasets()
     model = SVM(train_dataset)

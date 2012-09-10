@@ -51,7 +51,7 @@ def noiseless(callback):
     return lambda image,features: callback(remove_noise_block(image), features, prefix='noiseless-')
 
 def is_white(color):
-    return color > 200
+    return color > 230
 
 def x_histogram(image, features, prefix=''):
     width,height = image.size
@@ -88,42 +88,72 @@ def horizontal_silhouette(image, features, prefix=''):
     width,height = image.size
     for y in range(height):
         for x in range(width):
-            if is_white(_get(image, (x,y))) \
-              and is_white(_get(image, (x+1,y))) \
-              and is_white(_get(image, (x+2,y))) \
-              and is_white(_get(image, (x+3,y))):
+            if is_white(_get(image, (x,y))):
                   features[prefix+'horizontal_silhouette'+str(y)] = x/float(width)
 
 def reversed_horizontal_silhouette(image, features, prefix=''):
     width,height = image.size
     for y in range(height):
         for x in reversed(range(width)):
-            if is_white(_get(image, (x,y))) \
-              and is_white(_get(image, (x-1,y))) \
-              and is_white(_get(image, (x-2,y))) \
-              and is_white(_get(image, (x-3,y))):
+            if is_white(_get(image, (x,y))):
                   features[prefix+'reversed_horizontal_silhouette'+str(y)] = x/float(width)
 
 def vertical_silhouette(image, features, prefix=''):
     width,height = image.size
     for x in range(width):
         for y in range(height):
-            if is_white(_get(image, (x,y))) \
-              and is_white(_get(image, (x,y+1))) \
-              and is_white(_get(image, (x,y+2))) \
-              and is_white(_get(image, (x,y+3))):
+            if is_white(_get(image, (x,y))):
                   features[prefix+'vertical_silhouette'+str(x)] = y/float(height)
 
 def reversed_vertical_silhouette(image, features, prefix=''):
     width,height = image.size
     for x in range(width):
         for y in reversed(range(height)):
-            if is_white(_get(image, (x,y))) \
-              and is_white(_get(image, (x,y-1))) \
-              and is_white(_get(image, (x,y-2))) \
-              and is_white(_get(image, (x,y-3))):
+            if is_white(_get(image, (x,y))):
                   features[prefix+'reversed_vertical_silhouette'+str(x)] = y/float(height)
-                
+
+def middle_silhouette(image, features, prefix=''):
+    width,height = image.size
+    x = width / 2
+    for i,y in enumerate(reversed(range(height/2))):
+        if is_white(_get(image, (x,y))):
+            features[prefix+'middle_silhouette_a'] = i
+    for i,y in enumerate(range(height/2, height)):
+        if is_white(_get(image, (x,y))):
+            features[prefix+'middle_silhouette_b'] = i
+    y = height/2
+    for i,x in enumerate(reversed(range(width/2))):
+        if is_white(_get(image, (x,y))):
+            features[prefix+'middle_silhouette_c'] = i
+    for i,x in enumerate(range(width/2, width)):
+        if is_white(_get(image, (x,y))):
+            features[prefix+'middle_silhouette_d'] = i
+
+def vertical_symmetry(image, features, prefix=''):
+    width,height = image.size
+    first_half = EasyVector()
+    for x in range(width/2):
+        for y in range(height):
+            first_half[x*height + y] = _get(image, (x,y))
+    second_half = EasyVector()
+    for x in range(width/2,width):
+        for y in range(height):
+            second_half[-(x-width)*height + y] = _get(image, (x,y))
+    features[prefix+'vertical_symmetry'] = first_half.euclidean_distance(second_half)
+
+def horizontal_symmetry(image, features, prefix=''):
+    width,height = image.size
+    first_half = EasyVector()
+    for y in range(height/2):
+        for x in range(width):
+            first_half[x + y*width] = _get(image, (x,y))
+    second_half = EasyVector()
+    for y in range(height/2, height):
+        for x in range(width):
+            second_half[x - (y-height)*width] = _get(image, (x,y))
+    features[prefix+'horizontal_symmetry'] = first_half.euclidean_distance(second_half)
+
+
 class use_features(object):
     def __init__(self, features_to_use):
         self.features_to_use = features_to_use

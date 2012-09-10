@@ -47,6 +47,64 @@ def remove_noise_block(image):
                 new_img.putpixel((x,y), 255)
     return new_img
 
+def reduce_noise(image):
+    new_img = image.copy()
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            color = image.getpixel((x,y))
+            if color < 100:
+                new_img.putpixel((x,y), 0)
+            else:
+                new_img.putpixel((x,y), 255)
+    return new_img
+
+def reduce_lines(image):
+    new_img = image.copy()
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            colors = []
+            colors.append(_get(image, (x+1,y)))
+            colors.append(_get(image, (x-1,y)))
+            colors.append(_get(image, (x,y+1)))
+            colors.append(_get(image, (x,y-1)))
+            if any(map(lambda color: color == 0, colors)):
+                new_img.putpixel((x,y), 0)
+    return new_img
+
+def blur(image):
+    new_img = image.copy()
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            colors = []
+            colors.append(_get(image, (x+1,y)))
+            colors.append(_get(image, (x-1,y)))
+            colors.append(_get(image, (x,y+1)))
+            colors.append(_get(image, (x,y-1)))
+            new_img.putpixel((x,y), reduce(lambda a,b: a+b, colors)/len(colors))
+    return new_img
+
+def thicken_lines(image):
+    new_img = image.copy()
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            colors = []
+            colors.append(_get(image, (x+1,y)))
+            colors.append(_get(image, (x-1,y)))
+            colors.append(_get(image, (x,y+1)))
+            colors.append(_get(image, (x,y-1)))
+            colors.append(_get(image, (x+1,y+1)))
+            colors.append(_get(image, (x-1,y+1)))
+            colors.append(_get(image, (x+1,y-1)))
+            colors.append(_get(image, (x-1,y-1)))
+            if any(map(lambda color: color > 20, colors)):
+                new_img.putpixel((x,y), 255)
+    return new_img
+
+
 class Digit(object):
     def __init__(self, image, range):
         self.image = image
@@ -55,7 +113,7 @@ class Digit(object):
 class DigitSeparator(object):
     EMPTY = False
     NUMBER = True
-    BLACK_THRESHOLD = 0.85
+    BLACK_THRESHOLD = 0.92
     NUMBER_OF_NUMBERS = 4
     
     def __init__(self, image):
@@ -64,7 +122,7 @@ class DigitSeparator(object):
     def __num_of_blacks(self, lines):
         count = 0
         for color in lines:
-            if color < 160:
+            if color == 0:
                 count += 1
         return count
 
@@ -75,8 +133,6 @@ class DigitSeparator(object):
             lines = []
             for y in range(img_range.y_min, img_range.y_max):
                 lines.append(_get(image, (x,y)))
-                lines.append(_get(image, (x-1,y)))
-                lines.append(_get(image, (x+1,y)))
             if self.__num_of_blacks(lines)/float(len(lines)) > DigitSeparator.BLACK_THRESHOLD:
                 blocks[x] = DigitSeparator.EMPTY
             else:
@@ -90,7 +146,7 @@ class DigitSeparator(object):
                 histogram[y] += _get(image, (x,y))
         return histogram
 
-    def __simetric_digits_fix(self, image, ranges):
+    def __symmetryc_digits_fix(self, image, ranges):
         merged_ranges = []
         # A little help for 0 an 8
         for i, range1 in enumerate(ranges):
@@ -104,20 +160,41 @@ class DigitSeparator(object):
                 merged_ranges.append(main_range)
         return merged_ranges
 
-    def __multiple_digits_fix(self, image, ranges):
+    def __multiple_digits_fix(self, ranges):
         fixed = []
         for x_range in ranges:
             delta = abs(x_range[1]-x_range[0])
-            if delta > 50:
-                fixed.append((x_range[0], x_range[0]+(delta/2)))
-                fixed.append((x_range[0]+(delta/2)+1, x_range[1]))
+            # two digits
+            if 50 < delta <= 90:
+                fixed.append((x_range[0], x_range[0] + (delta/2)))
+                fixed.append((x_range[0] + (delta/2), x_range[1]))
+            # three digits
+            elif 90 < delta <= 130:
+                fixed.append((x_range[0], x_range[0]+(delta/3)))
+                fixed.append((x_range[0] + (delta/3), x_range[0] + 2*(delta/3)))
+                fixed.append((x_range[0] + 2*(delta/3), x_range[1]))
+            # four digits
+            elif delta > 130:
+                fixed.append((x_range[0], x_range[0] + (delta/4)))
+                fixed.append((x_range[0] + (delta/4), x_range[0] + 2*(delta/4)))
+                fixed.append((x_range[0] + 2*(delta/4), x_range[0] + 3*(delta/4)))
+                fixed.append((x_range[0] + 3*(delta/4), x_range[1]))
             else:
                 fixed.append(x_range)
         return fixed
 
+    def __add_margin(self, image, ranges):
+        new_ranges = []
+        for r in ranges:
+            first = r[0]-3 if r[0]-3 >= 0 else 0
+            last = r[1]+3 if r[1]+3 < image.size[0] else image.size[0]-1
+            new_ranges.append((first, last))
+        return new_ranges
+
     def __choose_ranges(self, image, ranges):
-        ranges = self.__simetric_digits_fix(image, ranges)
-        ranges = self.__multiple_digits_fix(image, ranges)
+        ranges = self.__symmetryc_digits_fix(image, ranges)
+        ranges = self.__add_margin(image, ranges)
+        ranges = self.__multiple_digits_fix(ranges)
         return sorted(ranges, key=lambda x: abs(x[1]-x[0]), reverse=True)[:DigitSeparator.NUMBER_OF_NUMBERS]
 
     def __ranges(self, blocks):
@@ -143,7 +220,7 @@ class DigitSeparator(object):
         return digit_img
 
     def get_digits(self):
-        new_image = remove_noise_block(self.image)
+        new_image = blur(reduce_lines(reduce_noise(self.image)))
         blocks = self.__image_into_blocks(new_image)
         digits = []
         ranges = self.__ranges(blocks)
