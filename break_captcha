@@ -11,7 +11,7 @@ def print_number(model, path):
     digits = digit_separator.get_digits()
     digits.sort(key=lambda d: d.range)
     labels = model.predict(map(lambda d: d.image, digits))
-    print ''.join(map(str, labels))
+    print ''.join(map(lambda x: str(int(x)), labels))
 
 def main():
     model = joblib.load(sys.argv[1])

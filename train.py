@@ -27,6 +27,7 @@ def test(model, test_dataset):
     for label, values in test_dataset.items():
         labels = model.predict(values) 
         for pred_l in labels:
+            pred_l = int(pred_l)
             if pred_l == label:
                 per_label_matches[pred_l] = per_label_matches.get(pred_l, 0) + 1
             per_label_pop[pred_l] = per_label_pop.get(pred_l, 0) + 1

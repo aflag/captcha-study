@@ -121,6 +121,4 @@ matches = 0
 for i,item in enumerate(sorted(annotations.items())):
     if values[i] == item[1]:
         matches += 1
-    else:
-       print values[i], item[1]
 print float(matches)/len(annotations)
