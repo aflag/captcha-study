@@ -1,6 +1,7 @@
 import Image
+import ImageOps
 import pickle
-from vector import EasyVector
+from vector import EasyVector, img2vec
 from processing import border_detection, remove_noise_block, _get
 
 class FeatureHandler(object):
@@ -131,26 +132,14 @@ def middle_silhouette(image, features, prefix=''):
 
 def vertical_symmetry(image, features, prefix=''):
     width,height = image.size
-    first_half = EasyVector()
-    for x in range(width/2):
-        for y in range(height):
-            first_half[x*height + y] = _get(image, (x,y))
-    second_half = EasyVector()
-    for x in range(width/2,width):
-        for y in range(height):
-            second_half[-(x-width)*height + y] = _get(image, (x,y))
+    first_half = img2vec(image.crop((0, 0, width/2, height)))
+    second_half = img2vec(ImageOps.mirror(image.crop((width/2, 0, width, height))))
     features[prefix+'vertical_symmetry'] = first_half.euclidean_distance(second_half)
 
 def horizontal_symmetry(image, features, prefix=''):
     width,height = image.size
-    first_half = EasyVector()
-    for y in range(height/2):
-        for x in range(width):
-            first_half[x + y*width] = _get(image, (x,y))
-    second_half = EasyVector()
-    for y in range(height/2, height):
-        for x in range(width):
-            second_half[x - (y-height)*width] = _get(image, (x,y))
+    first_half = img2vec(image.crop((0, 0, width, height/2)))
+    second_half = img2vec(ImageOps.flip(image.crop((0, height/2, width, height))))
     features[prefix+'horizontal_symmetry'] = first_half.euclidean_distance(second_half)
 
 

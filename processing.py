@@ -1,5 +1,8 @@
 import Image
-from vector import EasyVector
+import ImageFilter
+import ImageDraw
+import ImageOps
+from vector import EasyVector, img2vec
 
 class ImageRange(object):
     def __init__(self, x_min, y_min, x_max, y_max):
@@ -21,15 +24,7 @@ def _get(image, coord, default=0):
         return image.getpixel(coord)
 
 def border_detection(image):
-    new_img = image.copy()
-    width, height = new_img.size
-    MARGIN = 1
-    for x in range(width):
-        for y in range(height):
-            x_gradient = _get(image, (x-MARGIN, y)) - _get(image, (x+MARGIN, y))
-            y_gradient = _get(image, (x, y-MARGIN)) - _get(image, (x, y+MARGIN))
-            new_img.putpixel((x,y), max(x_gradient, y_gradient))
-    return new_img
+    return image.filter(ImageFilter.FIND_EDGES)
 
 def remove_noise_block(image):
     new_img = image.copy()
@@ -53,7 +48,7 @@ def reduce_noise(image):
     for x in range(width):
         for y in range(height):
             color = image.getpixel((x,y))
-            if color < 100:
+            if color < 127:
                 new_img.putpixel((x,y), 0)
             else:
                 new_img.putpixel((x,y), 255)
@@ -73,18 +68,8 @@ def reduce_lines(image):
                 new_img.putpixel((x,y), 0)
     return new_img
 
-def blur(image):
-    new_img = image.copy()
-    width, height = image.size
-    for x in range(width):
-        for y in range(height):
-            colors = []
-            colors.append(_get(image, (x+1,y)))
-            colors.append(_get(image, (x-1,y)))
-            colors.append(_get(image, (x,y+1)))
-            colors.append(_get(image, (x,y-1)))
-            new_img.putpixel((x,y), reduce(lambda a,b: a+b, colors)/len(colors))
-    return new_img
+def smooth(image):
+    return image.filter(ImageFilter.SMOOTH)
 
 def thicken_lines(image):
     new_img = image.copy()
@@ -112,8 +97,8 @@ class Digit(object):
 
 class DigitSeparator(object):
     EMPTY = False
-    NUMBER = True
-    BLACK_THRESHOLD = 0.92
+    FILLED = True
+    BLACK_THRESHOLD = 0.99
     NUMBER_OF_NUMBERS = 4
     
     def __init__(self, image):
@@ -127,33 +112,39 @@ class DigitSeparator(object):
         return count
 
     def __image_into_blocks(self, image):
-        img_range = ImageRange(*image.getbbox())
+        width, height = image.size
         blocks = {}
-        for x in range(img_range.x_min, img_range.x_max):
-            lines = []
-            for y in range(img_range.y_min, img_range.y_max):
-                lines.append(_get(image, (x,y)))
-            if self.__num_of_blacks(lines)/float(len(lines)) > DigitSeparator.BLACK_THRESHOLD:
+        for x in range(width):
+            column = []
+            for y in range(height):
+                column.append(_get(image, (x,y)))
+            if self.__num_of_blacks(column)/float(len(column)) > DigitSeparator.BLACK_THRESHOLD:
                 blocks[x] = DigitSeparator.EMPTY
             else:
-                blocks[x] = DigitSeparator.NUMBER
+                blocks[x] = DigitSeparator.FILLED
         return blocks
 
-    def __y_histogram(self, image, x_range):
-        histogram = EasyVector()
-        for y in range(image.size[1]):
-            for x in range(x_range[0], x_range[1]):
-                histogram[y] += _get(image, (x,y))
-        return histogram
+    def __first_half(self, image, x_range):
+        height = image.size[1]
+        width = abs(x_range[1] - x_range[0])
+        i1 = image.crop((x_range[0], 0, x_range[1], height))
+        return img2vec(i1)
+
+    def __second_half(self, image, x_range):
+        height = image.size[1]
+        width = abs(x_range[1] - x_range[0])
+        i2 = ImageOps.mirror(image.crop((x_range[0], 0, x_range[1], height)))
+        return img2vec(i2)
 
     def __symmetryc_digits_fix(self, image, ranges):
         merged_ranges = []
         # A little help for 0 an 8
         for i, range1 in enumerate(ranges):
-            for range2 in ranges[i+1:i+2]:
-                v1 = self.__y_histogram(image, range1)
-                v2 = self.__y_histogram(image, range2)
-                if v1.euclidean_distance(v2) < 4000:
+            if i+1 < len(ranges):
+                range2 = ranges[i+1]
+                v1 = self.__first_half(image, range1)
+                v2 = self.__second_half(image, range2)
+                if v1.euclidean_distance(v2) < 2200:
                     merged_ranges.append((range1[0], range2[1]))
         for main_range in ranges:
             if not any(map(lambda r: r[0] <= main_range[0] <= r[1] or r[0] <= main_range[1] <= r[1], merged_ranges)):
@@ -165,7 +156,7 @@ class DigitSeparator(object):
         for x_range in ranges:
             delta = abs(x_range[1]-x_range[0])
             # two digits
-            if 50 < delta <= 90:
+            if 53 < delta <= 90:
                 fixed.append((x_range[0], x_range[0] + (delta/2)))
                 fixed.append((x_range[0] + (delta/2), x_range[1]))
             # three digits
@@ -193,18 +184,18 @@ class DigitSeparator(object):
 
     def __choose_ranges(self, image, ranges):
         ranges = self.__symmetryc_digits_fix(image, ranges)
-        ranges = self.__add_margin(image, ranges)
         ranges = self.__multiple_digits_fix(ranges)
+        ranges = self.__add_margin(image, ranges)
         return sorted(ranges, key=lambda x: abs(x[1]-x[0]), reverse=True)[:DigitSeparator.NUMBER_OF_NUMBERS]
 
     def __ranges(self, blocks):
         ranges = []
         state = DigitSeparator.EMPTY
         for x,value in sorted(blocks.items()):
-            if value == DigitSeparator.NUMBER and state == DigitSeparator.EMPTY:
+            if value == DigitSeparator.FILLED and state == DigitSeparator.EMPTY:
                 first_digit = x
-                state = DigitSeparator.NUMBER
-            elif value == DigitSeparator.EMPTY and state == DigitSeparator.NUMBER:
+                state = DigitSeparator.FILLED
+            elif value == DigitSeparator.EMPTY and state == DigitSeparator.FILLED:
                 ranges.append((first_digit, x))
                 state = DigitSeparator.EMPTY
         return ranges
@@ -220,7 +211,7 @@ class DigitSeparator(object):
         return digit_img
 
     def get_digits(self):
-        new_image = blur(reduce_lines(reduce_noise(self.image)))
+        new_image = reduce_lines(reduce_noise(self.image))
         blocks = self.__image_into_blocks(new_image)
         digits = []
         ranges = self.__ranges(blocks)

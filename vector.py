@@ -1,5 +1,13 @@
 import math
 
+def img2vec(image):
+    vec = EasyVector()
+    width, height = image.size
+    for x in range(width):
+        for y in range(height):
+            vec[x*height + y] += image.getpixel((x,y))
+    return vec
+
 class EasyVector(object):
     def __init__(self):
         self.vec = {}
