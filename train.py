@@ -44,7 +44,7 @@ def main():
         train_dataset, test_dataset = make_datasets(train_size=70, test_size=0)
     else:
         train_dataset, test_dataset = make_datasets()
-    model = SVM(train_dataset)
+    model = RandomForest(train_dataset)
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])
     else:
