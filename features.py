@@ -2,7 +2,7 @@ import Image
 import ImageOps
 import pickle
 from vector import EasyVector, img2vec
-from processing import border_detection, remove_noise_block, _get
+from image_processing import border_detection, remove_noise_block, _get
 
 class FeatureHandler(object):
     def __init__(self, strategy, training_dataset):

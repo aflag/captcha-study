@@ -5,7 +5,7 @@ import os
 import pickle
 from models import *
 from sklearn.externals import joblib
-from processing import DigitSeparator
+from image_processing import DigitSeparator
 
 def make_train_dataset(files):
     dataset = {}
