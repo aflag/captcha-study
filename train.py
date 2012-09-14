@@ -1,48 +1,65 @@
 import sys
+import re
 import random
 import os
 import pickle
 from models import *
 from sklearn.externals import joblib
+from processing import DigitSeparator
 
-def make_datasets(train_size=20, test_size=50):
-    base_dir = sys.argv[1]
-    train_dataset = {}
-    test_dataset = {}
-    for i in range(10):
-        files = os.listdir(os.path.join(base_dir, str(i)))
-        files = map(lambda name: os.path.join(base_dir, str(i), name), files)
-        random.shuffle(files)
-        if files:
-            train_dataset[i] = files[:train_size]
-            test_dataset[i] = files[train_size:test_size+train_size]
+def make_train_dataset(files):
+    dataset = {}
+    for file_path in files:
+        file_name = os.path.basename(file_path)
+        labels = re.findall(r'^([0-9]+)-[0-9]+\..*$', file_name)[0]
+        with open(file_path) as f:
+            digits = DigitSeparator(Image.open(f).convert("L")).get_digits()
+        for i,digit in enumerate(digits):
+            label = int(labels[i])
+            dataset[label] = dataset.get(label, [])
+            dataset[label].append(digit)
+    return dataset
+
+def make_test_dataset(files):
+    dataset = []
+    for file_path in files:
+        file_name = os.path.basename(file_path)
+        label = re.findall(r'^([0-9]+)-[0-9]+\..*$', file_name)[0]
+        with open(file_path) as f:
+            digits = DigitSeparator(Image.open(f).convert("L")).get_digits()
+        dataset.append((label, digits))
+    return dataset
+
+def get_files(base_dir):
+    return map(lambda x: os.path.join(base_dir, x), os.listdir(base_dir))
+
+def generate_datasets(base_dir):
+    files = get_files(base_dir)
+    random.shuffle(files)
+    train_size = int(0.4*len(files))
+    train = files[:train_size]
+    test = files[train_size:]
+    print "Number of trains:", len(train), "Number of tests:", len(test)
+    train_dataset = make_train_dataset(train)
+    test_dataset = make_test_dataset(test)
     return train_dataset, test_dataset
+
+def largest_label_size(dataset):
+    return max(map(len, dataset.values()))
 
 def test(model, test_dataset):
     matches = 0
-    population = 0
-    per_label_matches = {}
-    per_label_pop = {}
-    for label, values in test_dataset.items():
-        labels = model.predict(values)
-        for pred_l in labels:
-            pred_l = int(pred_l)
-            if pred_l == label:
-                per_label_matches[pred_l] = per_label_matches.get(pred_l, 0) + 1
-            per_label_pop[pred_l] = per_label_pop.get(pred_l, 0) + 1
-        matches += len(filter(lambda x: x==label, labels))
-        population += len(values)
-
-    for label in sorted(per_label_matches):
-        print label, float(per_label_matches[label])/per_label_pop[label]
-
-    print 'total:', float(matches)/population
+    for labels,digits in test_dataset:
+        pred_labels = model.predict(digits)
+        if labels == ''.join(map(lambda x: str(int(x)), pred_labels)):
+            matches += 1
+    print 'Matches:', float(matches)/len(test_dataset)
 
 def main():
     if len(sys.argv) > 2:
-        train_dataset, test_dataset = make_datasets(train_size=70, test_size=0)
+        train_dataset = make_train_dataset(get_files(sys.argv[1]))
     else:
-        train_dataset, test_dataset = make_datasets()
+        train_dataset, test_dataset = generate_datasets(sys.argv[1])
     model = RandomForest(train_dataset)
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])

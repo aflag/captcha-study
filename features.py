@@ -46,100 +46,100 @@ class FeatureHandler(object):
         return vectors
 
 def border(callback):
-    return lambda image,features: callback(border_detection(image), features, prefix='border-')
+    return lambda digit,features: callback(border_detection(digit), features, prefix='border-')
 
 def noiseless(callback):
-    return lambda image,features: callback(remove_noise_block(image), features, prefix='noiseless-')
+    return lambda digit,features: callback(remove_noise_block(digit), features, prefix='noiseless-')
 
 def is_white(color):
     return color > 230
 
-def x_histogram(image, features, prefix=''):
-    width,height = image.size
+def x_histogram(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            features[prefix+"x-histogram-"+str(x)] += image.getpixel((x,y))
+            features[prefix+"x-histogram-"+str(x)] += digit.image.getpixel((x,y))
 
-def y_histogram(image, features, prefix=''):
-    width,height = image.size
+def y_histogram(digit, features, prefix=''):
+    width,height = digit.image.size
     for y in range(height):
         for x in range(width):
-            features[prefix+'y-histogram-'+str(y)] += image.getpixel((x,y))
+            features[prefix+'y-histogram-'+str(y)] += digit.image.getpixel((x,y))
 
-def positions(image, features, prefix=''):
-    width,height = image.size
+def positions(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            features[prefix+'pos-'+str(x*height + y)] += image.getpixel((x,y))
+            features[prefix+'pos-'+str(x*height + y)] += digit.image.getpixel((x,y))
 
-def number_of_whites(image, features, prefix=''):
-    width,height = image.size
+def number_of_whites(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            if is_white(image.getpixel((x,y))):
+            if is_white(digit.image.getpixel((x,y))):
                 features[prefix+'number_of_whites'] += 1
 
-def number_of_pixels(image, features, prefix=''):
-    width,height = image.size
+def number_of_pixels(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in range(height):
             features[prefix+'number_of_pixels'] += 1
 
-def horizontal_silhouette(image, features, prefix=''):
-    width,height = image.size
+def horizontal_silhouette(digit, features, prefix=''):
+    width,height = digit.image.size
     for y in range(height):
         for x in range(width):
-            if is_white(_get(image, (x,y))):
+            if is_white(_get(digit.image, (x,y))):
                   features[prefix+'horizontal_silhouette'+str(y)] = x/float(width)
 
-def reversed_horizontal_silhouette(image, features, prefix=''):
-    width,height = image.size
+def reversed_horizontal_silhouette(digit, features, prefix=''):
+    width,height = digit.image.size
     for y in range(height):
         for x in reversed(range(width)):
-            if is_white(_get(image, (x,y))):
+            if is_white(_get(digit.image, (x,y))):
                   features[prefix+'reversed_horizontal_silhouette'+str(y)] = x/float(width)
 
-def vertical_silhouette(image, features, prefix=''):
-    width,height = image.size
+def vertical_silhouette(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            if is_white(_get(image, (x,y))):
+            if is_white(_get(digit.image, (x,y))):
                   features[prefix+'vertical_silhouette'+str(x)] = y/float(height)
 
-def reversed_vertical_silhouette(image, features, prefix=''):
-    width,height = image.size
+def reversed_vertical_silhouette(digit, features, prefix=''):
+    width,height = digit.image.size
     for x in range(width):
         for y in reversed(range(height)):
-            if is_white(_get(image, (x,y))):
+            if is_white(_get(digit.image, (x,y))):
                   features[prefix+'reversed_vertical_silhouette'+str(x)] = y/float(height)
 
-def middle_silhouette(image, features, prefix=''):
-    width,height = image.size
+def middle_silhouette(digit, features, prefix=''):
+    width,height = digit.image.size
     x = width / 2
     for i,y in enumerate(reversed(range(height/2))):
-        if is_white(_get(image, (x,y))):
+        if is_white(_get(digit.image, (x,y))):
             features[prefix+'middle_silhouette_a'] = i
     for i,y in enumerate(range(height/2, height)):
-        if is_white(_get(image, (x,y))):
+        if is_white(_get(digit.image, (x,y))):
             features[prefix+'middle_silhouette_b'] = i
     y = height/2
     for i,x in enumerate(reversed(range(width/2))):
-        if is_white(_get(image, (x,y))):
+        if is_white(_get(digit.image, (x,y))):
             features[prefix+'middle_silhouette_c'] = i
     for i,x in enumerate(range(width/2, width)):
-        if is_white(_get(image, (x,y))):
+        if is_white(_get(digit.image, (x,y))):
             features[prefix+'middle_silhouette_d'] = i
 
-def vertical_symmetry(image, features, prefix=''):
-    width,height = image.size
-    first_half = img2vec(image.crop((0, 0, width/2, height)))
-    second_half = img2vec(ImageOps.mirror(image.crop((width/2, 0, width, height))))
+def vertical_symmetry(digit, features, prefix=''):
+    width,height = digit.image.size
+    first_half = img2vec(digit.image.crop((0, 0, width/2, height)))
+    second_half = img2vec(ImageOps.mirror(digit.image.crop((width/2, 0, width, height))))
     features[prefix+'vertical_symmetry'] = first_half.euclidean_distance(second_half)
 
-def horizontal_symmetry(image, features, prefix=''):
-    width,height = image.size
-    first_half = img2vec(image.crop((0, 0, width, height/2)))
-    second_half = img2vec(ImageOps.flip(image.crop((0, height/2, width, height))))
+def horizontal_symmetry(digit, features, prefix=''):
+    width,height = digit.image.size
+    first_half = img2vec(digit.image.crop((0, 0, width, height/2)))
+    second_half = img2vec(ImageOps.flip(digit.image.crop((0, height/2, width, height))))
     features[prefix+'horizontal_symmetry'] = first_half.euclidean_distance(second_half)
 
 

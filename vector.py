@@ -38,6 +38,12 @@ class EasyVector(object):
     def __len__(self):
         return len(self.vec)
 
+    def __str__(self):
+        return str(self.vec)
+
+    def __repr__(self):
+        return repr(self.vec)
+
     def euclidean_distance(self, other):
         result = 0
         for x, value in other.vec.items():
