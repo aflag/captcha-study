@@ -68,19 +68,6 @@ def reduce_lines(image):
                 new_img.putpixel((x,y), 0)
     return new_img
 
-def blur(image):
-    new_img = image.copy()
-    width, height = image.size
-    for x in range(width):
-        for y in range(height):
-            colors = []
-            colors.append(_get(image, (x+1,y)))
-            colors.append(_get(image, (x-1,y)))
-            colors.append(_get(image, (x,y+1)))
-            colors.append(_get(image, (x,y-1)))
-            new_img.putpixel((x,y), reduce(lambda a,b: a+b, colors)/len(colors))
-    return new_img
-
 def smooth(image):
     return image.filter(ImageFilter.SMOOTH)
 
@@ -150,19 +137,46 @@ class DigitSeparator(object):
         return img2vec(i2)
 
     def __symmetryc_digits_fix(self, image, ranges):
+        """a little help for 0 an 8"""
         merged_ranges = []
-        # A little help for 0 an 8
+        skip = False
         for i, range1 in enumerate(ranges):
+            if skip:
+                skip = False
+                continue
             if i+1 < len(ranges):
                 range2 = ranges[i+1]
                 v1 = self.__first_half(image, range1)
                 v2 = self.__second_half(image, range2)
                 if v1.euclidean_distance(v2) < 2200:
                     merged_ranges.append((range1[0], range2[1]))
-        for main_range in ranges:
-            if not any(map(lambda r: r[0] <= main_range[0] <= r[1] or r[0] <= main_range[1] <= r[1], merged_ranges)):
-                merged_ranges.append(main_range)
+                    skip = True
+                else:
+                    merged_ranges.append(range1)
+            else:
+                merged_ranges.append(range1)
         return merged_ranges
+
+    def __small_range_join(self, ranges):
+        merged_ranges = []
+        skip = False
+        for i, range1 in enumerate(ranges):
+            if skip:
+                skip = False
+                continue
+            if i+1 < len(ranges):
+                range2 = ranges[i+1]
+                delta1 = abs(range1[1]-range1[0])
+                delta2 = abs(range2[1]-range2[0])
+                if delta1 < 18 and delta2 < 18:
+                    merged_ranges.append((range1[0], range2[1]))
+                    skip = True
+                else:
+                    merged_ranges.append(range1)
+            else:
+                merged_ranges.append(range1)
+        return merged_ranges
+        
 
     def __multiple_digits_fix(self, ranges):
         fixed = []
@@ -196,6 +210,7 @@ class DigitSeparator(object):
         return new_ranges
 
     def __choose_ranges(self, image, ranges):
+        ranges = self.__small_range_join(ranges)
         ranges = self.__symmetryc_digits_fix(image, ranges)
         ranges = self.__multiple_digits_fix(ranges)
         ranges = self.__add_margin(image, ranges)
@@ -226,7 +241,7 @@ class DigitSeparator(object):
         return digit_img
 
     def get_digits(self):
-        new_image = smooth(reduce_lines(reduce_noise(self.image)))
+        new_image = reduce_lines(reduce_noise(self.image))
         blocks = self.__image_into_blocks(new_image)
         digits = []
         ranges = self.__ranges(blocks)
