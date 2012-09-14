@@ -5,7 +5,6 @@ import pickle
 from models import *
 from sklearn.externals import joblib
 
-# the largest label has 80 objects
 def make_datasets(train_size=20, test_size=50):
     base_dir = sys.argv[1]
     train_dataset = {}
@@ -25,7 +24,7 @@ def test(model, test_dataset):
     per_label_matches = {}
     per_label_pop = {}
     for label, values in test_dataset.items():
-        labels = model.predict(values) 
+        labels = model.predict(values)
         for pred_l in labels:
             pred_l = int(pred_l)
             if pred_l == label:
@@ -44,7 +43,7 @@ def main():
         train_dataset, test_dataset = make_datasets(train_size=70, test_size=0)
     else:
         train_dataset, test_dataset = make_datasets()
-    model = SVM(train_dataset)
+    model = RandomForest(train_dataset)
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])
     else:
