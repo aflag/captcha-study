@@ -1,4 +1,4 @@
 #!/bin/sh
-for x in /home/rafael/hacking/captcha/captchas/*; do
-    python /home/rafael/hacking/captcha/extract.py $x /tmp/digits/;
+for x in /home/rafael/captcha-study/captchas/*; do
+    python /home/rafael/captcha-study/extract.py $x /tmp/digits/;
 done

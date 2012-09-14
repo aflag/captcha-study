@@ -64,7 +64,7 @@ def reduce_lines(image):
             colors.append(_get(image, (x-1,y)))
             colors.append(_get(image, (x,y+1)))
             colors.append(_get(image, (x,y-1)))
-            if any(map(lambda color: color == 0, colors)):
+            if any(map(lambda color: color < 127, colors)):
                 new_img.putpixel((x,y), 0)
     return new_img
 
@@ -98,15 +98,15 @@ class Digit(object):
 class DigitSeparator(object):
     EMPTY = False
     FILLED = True
-    BLACK_THRESHOLD = 0.92
-    NUMBER_OF_NUMBERS = 4
+    BLACK_THRESHOLD = 0.99
+    NUMBER_OF_DIGITS = 4
     
     def __init__(self, image):
         self.image = image
 
-    def __num_of_blacks(self, lines):
+    def __num_of_blacks(self, line):
         count = 0
-        for color in lines:
+        for color in line:
             if color < 127:
                 count += 1
         return count
@@ -214,7 +214,7 @@ class DigitSeparator(object):
         ranges = self.__symmetryc_digits_fix(image, ranges)
         ranges = self.__multiple_digits_fix(ranges)
         ranges = self.__add_margin(image, ranges)
-        chosen = sorted(ranges, key=lambda x: abs(x[1]-x[0]), reverse=True)[:DigitSeparator.NUMBER_OF_NUMBERS]
+        chosen = sorted(ranges, key=lambda x: abs(x[1]-x[0]), reverse=True)[:DigitSeparator.NUMBER_OF_DIGITS]
         chosen.sort()
         return chosen
 
