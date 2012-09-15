@@ -55,4 +55,4 @@ def NN(dataset):
     return ScikitWrapper(NearestCentroid(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def RandomFlorest(dataset):
-    return ScikitWrapper(ensemble.RandomForestClassifier(n_estimators=300, n_jobs=8), [x_histogram, y_histogram, positions, number_of_whites, number_of_pixels, horizontal_silhouette, reversed_horizontal_silhouette, vertical_silhouette, reversed_vertical_silhouette, middle_silhouette, vertical_symmetry, horizontal_symmetry], dataset)
+    return ScikitWrapper(ensemble.RandomForestClassifier(n_estimators=300, n_jobs=2), [x_histogram, y_histogram, positions, number_of_whites, number_of_pixels, horizontal_silhouette, reversed_horizontal_silhouette, vertical_silhouette, reversed_vertical_silhouette, middle_silhouette, vertical_symmetry, horizontal_symmetry], dataset)
