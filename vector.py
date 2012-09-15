@@ -22,9 +22,10 @@ import math
 def img2vec(image):
     vec = EasyVector()
     width, height = image.size
+    pix = image.load()
     for x in range(width):
         for y in range(height):
-            vec[x*height + y] += image.getpixel((x,y))
+            vec[x*height + y] += pix[x,y]
     return vec
 
 class EasyVector(object):

@@ -34,57 +34,45 @@ class ImageRange(object):
         return x < self.x_max and x >= self.x_min and y < self.y_max \
                 and y >= self.y_min
 
-def _get(image, coord, default=0):
+def _get(pix, (width,height), coord, default=0):
     x, y = coord
-    width, height = image.size
     if (x>=width) or (x<0) or (y>=height) or (y<0):
         return default
     else:
-        return image.getpixel(coord)
+        return pix[x,y]
 
 def border_detection(image):
     return image.filter(ImageFilter.FIND_EDGES)
 
-def remove_noise_block(image):
-    new_img = image.copy()
-    width, height = image.size
-    for x in range(width):
-        for y in range(height):
-            squares = []
-            squares.append(_get(image, (x,y)))
-            squares.append(_get(image, (x,y+1)))
-            squares.append(_get(image, (x+1,y)))
-            squares.append(_get(image, (x+1,y+1)))
-            if all(map(lambda x: x < 120, squares)):
-                new_img.putpixel((x,y), 0)
-            elif all(map(lambda x: x > 150, squares)):
-                new_img.putpixel((x,y), 255)
-    return new_img
-
 def reduce_noise(image):
     new_img = image.copy()
     width, height = image.size
+    pix = image.load()
+    pix2 = new_img.load()
     for x in range(width):
         for y in range(height):
-            color = image.getpixel((x,y))
+            color = pix[x,y]
             if color < 127:
-                new_img.putpixel((x,y), 0)
+                pix2[x,y] = 0
             else:
-                new_img.putpixel((x,y), 255)
+                pix2[x,y] = 255
     return new_img
 
 def reduce_lines(image):
     new_img = image.copy()
     width, height = image.size
+    pix = image.load()
+    pix2 = new_img.load()
     for x in range(width):
         for y in range(height):
-            colors = []
-            colors.append(_get(image, (x+1,y)))
-            colors.append(_get(image, (x-1,y)))
-            colors.append(_get(image, (x,y+1)))
-            colors.append(_get(image, (x,y-1)))
-            if any(map(lambda color: color < 127, colors)):
-                new_img.putpixel((x,y), 0)
+            if x+1 >= width or pix[x+1,y] < 127:
+                pix2[x,y] = 0
+            elif x-1 < 0 or pix[x-1,y] < 127:
+                pix2[x,y] = 0
+            elif y+1 >= height or pix[x,y+1] < 127:
+                pix2[x,y] = 0
+            elif y-1 < 0 or pix[x,y-1] < 127:
+                pix2[x,y] = 0
     return new_img
 
 def smooth(image):
@@ -93,19 +81,21 @@ def smooth(image):
 def thicken_lines(image):
     new_img = image.copy()
     width, height = image.size
+    pix = image.load()
+    pix2 = new_img.load()
     for x in range(width):
         for y in range(height):
             colors = []
-            colors.append(_get(image, (x+1,y)))
-            colors.append(_get(image, (x-1,y)))
-            colors.append(_get(image, (x,y+1)))
-            colors.append(_get(image, (x,y-1)))
-            colors.append(_get(image, (x+1,y+1)))
-            colors.append(_get(image, (x-1,y+1)))
-            colors.append(_get(image, (x+1,y-1)))
-            colors.append(_get(image, (x-1,y-1)))
+            colors.append(_get(pix, image.size, (x+1,y)))
+            colors.append(_get(pix, image.size, (x-1,y)))
+            colors.append(_get(pix, image.size, (x,y+1)))
+            colors.append(_get(pix, image.size, (x,y-1)))
+            colors.append(_get(pix, image.size, (x+1,y+1)))
+            colors.append(_get(pix, image.size, (x-1,y+1)))
+            colors.append(_get(pix, image.size, (x+1,y-1)))
+            colors.append(_get(pix, image.size, (x-1,y-1)))
             if any(map(lambda color: color > 20, colors)):
-                new_img.putpixel((x,y), 255)
+                pix2[x,y] = 255
     return new_img
 
 
@@ -113,6 +103,15 @@ class Digit(object):
     def __init__(self, image, range):
         self.image = image
         self.range = range
+        self.pix = image.load()
+
+    def get(self, coord, default=0):
+        x, y = coord
+        width, height = self.image.size
+        if (x>=width) or (x<0) or (y>=height) or (y<0):
+            return default
+        else:
+            return self.pix[x, y]
 
 class DigitSeparator(object):
     EMPTY = False
@@ -133,10 +132,11 @@ class DigitSeparator(object):
     def __image_into_blocks(self, image):
         width, height = image.size
         blocks = {}
+        pix = image.load()
         for x in range(width):
             column = []
             for y in range(height):
-                column.append(_get(image, (x,y)))
+                column.append(_get(pix, image.size, (x,y)))
             if self.__num_of_blacks(column)/float(len(column)) > DigitSeparator.BLACK_THRESHOLD:
                 blocks[x] = DigitSeparator.EMPTY
             else:
@@ -250,14 +250,8 @@ class DigitSeparator(object):
         return ranges
 
     def __create_image_from_range(self, num_range, image):
-        width = abs(num_range[1] - num_range[0])
         height = image.size[1]
-        digit_img = Image.new('L', (width,height))
-        for x in range(num_range[0], num_range[1]):
-            for y in range(height):
-                value = image.getpixel((x,y))
-                digit_img.putpixel((x-num_range[0],y), value)
-        return digit_img
+        return image.crop((num_range[0], 0, num_range[1], height))
 
     def get_digits(self):
         new_image = reduce_lines(reduce_noise(self.image))

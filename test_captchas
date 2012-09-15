@@ -22,8 +22,12 @@ import os
 import sys
 import re
 import Image
+import time
 from sklearn.externals import joblib
 from image_processing import DigitSeparator
+import cProfile
+
+model = joblib.load(sys.argv[1])
 
 def make_test_dataset(files):
     dataset = []
@@ -35,15 +39,19 @@ def make_test_dataset(files):
         dataset.append((label, digits))
     return dataset
 
-base_dir = sys.argv[2]
-files = map(lambda x: os.path.join(base_dir, x), os.listdir(base_dir))
-dataset = make_test_dataset(files)
 
-model = joblib.load(sys.argv[1])
+def prof():
+    base_dir = sys.argv[2]
+    files = map(lambda x: os.path.join(base_dir, x), os.listdir(base_dir))
+    dataset = make_test_dataset(files)
+    t0 = time.time()
+    matches = 0
+    for labels,digits in dataset:
+        pred_labels = model.predict(digits)
+        if labels == ''.join(map(lambda x: str(int(x)), pred_labels)):
+            matches += 1
+    spent_time = time.time() - t0
+    print 'Spent time:', spent_time, 'avg per predict:', spent_time/len(dataset)
+    print 'Matches:', float(matches)/len(dataset)
 
-matches = 0
-for labels,digits in dataset:
-    pred_labels = model.predict(digits)
-    if labels == ''.join(map(lambda x: str(int(x)), pred_labels)):
-        matches += 1
-print 'Matches:', float(matches)/len(dataset)
+cProfile.run('prof()', filename='/tmp/profile')

@@ -21,7 +21,7 @@ import Image
 import ImageOps
 import pickle
 from vector import EasyVector, img2vec
-from image_processing import border_detection, remove_noise_block, _get
+from image_processing import border_detection, reduce_noise
 
 class FeatureHandler(object):
     def __init__(self, strategy, training_dataset):
@@ -68,7 +68,7 @@ def border(callback):
     return lambda digit,features: callback(border_detection(digit), features, prefix='border-')
 
 def noiseless(callback):
-    return lambda digit,features: callback(remove_noise_block(digit), features, prefix='noiseless-')
+    return lambda digit,features: callback(reduce_noise(digit), features, prefix='noiseless-')
 
 def is_white(color):
     return color > 230
@@ -77,25 +77,25 @@ def x_histogram(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            features[prefix+"x-histogram-"+str(x)] += digit.image.getpixel((x,y))
+            features[prefix+"x-histogram-"+str(x)] += digit.pix[x,y]
 
 def y_histogram(digit, features, prefix=''):
     width,height = digit.image.size
     for y in range(height):
         for x in range(width):
-            features[prefix+'y-histogram-'+str(y)] += digit.image.getpixel((x,y))
+            features[prefix+'y-histogram-'+str(y)] += digit.pix[x,y]
 
 def positions(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            features[prefix+'pos-'+str(x*height + y)] += digit.image.getpixel((x,y))
+            features[prefix+'pos-'+str(x*height + y)] += digit.pix[x,y]
 
 def number_of_whites(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            if is_white(digit.image.getpixel((x,y))):
+            if is_white(digit.pix[x,y]):
                 features[prefix+'number_of_whites'] += 1
 
 def number_of_pixels(digit, features, prefix=''):
@@ -108,45 +108,45 @@ def horizontal_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
     for y in range(height):
         for x in range(width):
-            if is_white(_get(digit.image, (x,y))):
+            if is_white(digit.get((x,y))):
                   features[prefix+'horizontal_silhouette'+str(y)] = x/float(width)
 
 def reversed_horizontal_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
     for y in range(height):
         for x in reversed(range(width)):
-            if is_white(_get(digit.image, (x,y))):
+            if is_white(digit.get((x,y))):
                   features[prefix+'reversed_horizontal_silhouette'+str(y)] = x/float(width)
 
 def vertical_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            if is_white(_get(digit.image, (x,y))):
+            if is_white(digit.get((x,y))):
                   features[prefix+'vertical_silhouette'+str(x)] = y/float(height)
 
 def reversed_vertical_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in reversed(range(height)):
-            if is_white(_get(digit.image, (x,y))):
+            if is_white(digit.get((x,y))):
                   features[prefix+'reversed_vertical_silhouette'+str(x)] = y/float(height)
 
 def middle_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
     x = width / 2
     for i,y in enumerate(reversed(range(height/2))):
-        if is_white(_get(digit.image, (x,y))):
+        if is_white(digit.get((x,y))):
             features[prefix+'middle_silhouette_a'] = i
     for i,y in enumerate(range(height/2, height)):
-        if is_white(_get(digit.image, (x,y))):
+        if is_white(digit.get((x,y))):
             features[prefix+'middle_silhouette_b'] = i
     y = height/2
     for i,x in enumerate(reversed(range(width/2))):
-        if is_white(_get(digit.image, (x,y))):
+        if is_white(digit.get((x,y))):
             features[prefix+'middle_silhouette_c'] = i
     for i,x in enumerate(range(width/2, width)):
-        if is_white(_get(digit.image, (x,y))):
+        if is_white(digit.get((x,y))):
             features[prefix+'middle_silhouette_d'] = i
 
 def vertical_symmetry(digit, features, prefix=''):
