@@ -79,7 +79,7 @@ def main():
         train_dataset = make_train_dataset(get_files(sys.argv[1]))
     else:
         train_dataset, test_dataset = generate_datasets(sys.argv[1])
-    model = RandomFlorest(train_dataset)
+    model = RandomForest(train_dataset)
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])
     else:
