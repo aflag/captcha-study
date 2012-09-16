@@ -21,15 +21,14 @@
 import sys
 import Image
 from sklearn.externals import joblib
-from processing import DigitSeparator
+from image_processing import DigitSeparator
+import urllib2
+import StringIO
 
-def print_number(model, path):
-    with open(path) as f_image:
-        image = Image.open(f_image).convert('L')
+def detect_number(model, image):
     digit_separator = DigitSeparator(image)
     digits = digit_separator.get_digits()
-    digits.sort(key=lambda d: d.range)
-    labels = model.predict(map(lambda d: d.image, digits))
+    labels = model.predict(digits)
     print ''.join(map(lambda x: str(int(x)), labels))
 
 def main():
@@ -40,7 +39,13 @@ def main():
         try:
             while 1:
                 img_path = raw_input()
-                print_number(model, img_path)
+                if img_path.startswith('http'):
+                    tmp = StringIO.StringIO(urllib2.urlopen(img_path).read())
+                    image = Image.open(tmp).convert('L')
+                else:
+                    with open(img_path) as f_image:
+                        image = Image.open(f_image).convert('L')
+                detect_number(model, image)
         except EOFError:
             pass
 

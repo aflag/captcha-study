@@ -39,7 +39,6 @@ def make_test_dataset(files):
         dataset.append((label, digits))
     return dataset
 
-
 def prof():
     base_dir = sys.argv[2]
     files = map(lambda x: os.path.join(base_dir, x), os.listdir(base_dir))
