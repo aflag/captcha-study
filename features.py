@@ -57,6 +57,11 @@ class FeatureHandler(object):
         features = self.__extract_features(items)
         return self.vectorizer.transform(features).toarray()
 
+def border_detection(digit):
+    digit.image = digit.image.filter(ImageFilter.FIND_EDGES)
+    digit.pix = digit.image.load()
+    return digit
+
 def border(callback):
     return lambda digit,features: callback(border_detection(digit), features, prefix='border-')
 

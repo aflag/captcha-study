@@ -41,9 +41,6 @@ def _get(pix, (width,height), coord, default=0):
     else:
         return pix[x,y]
 
-def border_detection(image):
-    return image.filter(ImageFilter.FIND_EDGES)
-
 def reduce_noise(image):
     new_img = image.copy()
     width, height = image.size
