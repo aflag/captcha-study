@@ -27,17 +27,15 @@ from sklearn.externals import joblib
 from image_processing import DigitSeparator
 
 def make_train_dataset(files):
-    dataset = {}
+    dataset = []
     for file_path in files:
         file_name = os.path.basename(file_path)
         labels = re.findall(r'^([0-9]+)-[0-9]+\..*$', file_name)[0]
         with open(file_path) as f:
             digits = DigitSeparator(Image.open(f).convert("L")).get_digits()
         for i,digit in enumerate(digits):
-            label = int(labels[i])
-            dataset[label] = dataset.get(label, [])
-            dataset[label].append(digit)
-    return dataset
+            dataset.append((digit, labels[i]))
+    return zip(*dataset)  # unzip
 
 def make_test_dataset(files):
     dataset = []
@@ -79,11 +77,15 @@ def main():
         train_dataset = make_train_dataset(get_files(sys.argv[1]))
     else:
         train_dataset, test_dataset = generate_datasets(sys.argv[1])
+    t0 = time.time()
     model = RandomForest(train_dataset)
+    print 'Train time:', time.time() - t0
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])
     else:
+        t0 = time.time()
         test(model, test_dataset)
+        print 'Test time:', time.time() - t0
 
 if __name__ == '__main__':
     main()
