@@ -38,13 +38,21 @@ class compose_extractors(object):
             extractor(image, image_features)
         return image_features
 
-def border_detection(digit):
+def _border_detection(digit):
     digit.image = digit.image.filter(ImageFilter.FIND_EDGES)
     digit.pix = digit.image.load()
     return digit
 
 def border(callback):
-    return lambda digit,features: callback(border_detection(digit), features, prefix='border-')
+    return lambda digit,features: callback(_border_detection(digit), features, prefix='border-')
+
+def _scale_down(digit):
+    digit.image = digit.image.resize((16,16), Image.BICUBIC)
+    digit.pix = digit.image.load()
+    return digit
+
+def scale_image_down(callback):
+    return lambda digit,features: callback(_scale_down(digit), features, prefix='scaled-')
 
 def is_white(color):
     return color > 230

@@ -249,7 +249,7 @@ class DigitSeparator(object):
 
     def __create_image_from_range(self, num_range, image):
         height = image.size[1]
-        return image.crop((num_range[0], 0, num_range[1], height)).resize((16,16), Image.BICUBIC)
+        return image.crop((num_range[0], 0, num_range[1], height))
 
     def get_digits(self):
         new_image = reduce_lines(reduce_noise(self.image))

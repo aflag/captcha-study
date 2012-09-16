@@ -45,7 +45,7 @@ ALL_EXTRACTORS = [
         horizontal_symmetry,
 ]
 
-SVM_EXTRACTORS = [positions]
+SVM_EXTRACTORS = [scale_image_down(positions)]
 def svm_engine():
     return svm.SVC(kernel='poly', degree=2)
 
