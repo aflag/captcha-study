@@ -12,33 +12,23 @@
 #
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 # IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE X
-# CONSORTIUM BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
 # ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
 # WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 from features import *
+from image_processing import DigitSeparator
 from functools import partial
-from sklearn import naive_bayes
-from sklearn import tree
-from sklearn import linear_model
-from sklearn import svm
-from sklearn import ensemble
-from sklearn.neighbors.nearest_centroid import NearestCentroid
-from sklearn import decomposition
+
 import time
 
-class ScikitWrapper(object):
-    def __init__(self, engine, extractors, dataset):
-        self.feature_handler = FeatureHandler(
-                compose_extractors(extractors),
-                dataset)
-        self.engine = engine
-        vector, labels = self.feature_handler.sklearn_format_train()
-        self.engine.fit(vector, labels)
+from sklearn import svm
+from sklearn import ensemble
+from sklearn.feature_extraction import DictVectorizer
 
-    def predict(self, items):
-        return self.engine.predict(self.feature_handler.sklearn_format_test(items))
+class ModelUnavailable(Exception):
+    pass
 
 ALL_EXTRACTORS = [
         x_histogram,
@@ -55,20 +45,48 @@ ALL_EXTRACTORS = [
         horizontal_symmetry,
 ]
 
-def NaiveBayes(dataset):
-    return ScikitWrapper(naive_bayes.MultinomialNB(), [positions], dataset)
+SVM_EXTRACTORS = [positions]
+def svm_engine():
+    return svm.SVC(kernel='poly', degree=2)
 
-def DecisionTree(dataset):
-    return ScikitWrapper(tree.DecisionTreeRegressor(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
+FOREST_EXTRACTORS = ALL_EXTRACTORS
+def forest_engine():
+    return ensemble.RandomForestClassifier(n_estimators=50, n_jobs=2)
 
-def SGD(dataset):
-    return ScikitWrapper(linear_model.SGDClassifier(loss="hinge", penalty="l2"), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
+class CaptchaDecoder(object):
+    def __init__(self, x, y):
+        self.engine = svm_engine()
+        self.feature_extractor = compose_extractors(SVM_EXTRACTORS)
+        self.fit(x,y)
 
-def SVM(dataset):
-    return ScikitWrapper(svm.SVC(kernel='poly', degree=2), [positions], dataset)
+    def fit(self, x, y):
+        digits = []
+        labels = []
+        for image,param_labels in zip(x,y):
+            separator = DigitSeparator(image)
+            digits.extend(map(self.feature_extractor, separator.get_digits()))
+            labels.extend(param_labels)
+        self.vectorizer = DictVectorizer()
+        train_array = self.vectorizer.fit_transform(digits).toarray()
+        self.engine.fit(train_array, labels)
 
-def NN(dataset):
-    return ScikitWrapper(NearestCentroid(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
+    def predict(self, x):
+        prediction = []
+        for image in x:
+           separator = DigitSeparator(image) 
+           features = map(self.feature_extractor, separator.get_digits())
+           digits = self.vectorizer.transform(features).toarray()
+           labels = self.engine.predict(digits)
+           prediction.append(''.join(map(lambda x: '%d'%x, labels)))
+        return prediction
 
-def RandomForest(dataset):
-    return ScikitWrapper(ensemble.RandomForestClassifier(n_estimators=50, n_jobs=2), ALL_EXTRACTORS, dataset)
+    def score(self, data, labels):
+        pred_labels = self.predict(data)
+        matches = sum(map(lambda (x,y): x==y, zip(labels, pred_labels)))
+        return float(matches)/len(labels)
+
+    def decode_image(self, image):
+        return self.predict([image])[0]
+
+    def get_params(self, *args, **kwargs):
+        return self.engine(*args, **kwargs)

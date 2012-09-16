@@ -21,7 +21,6 @@ import Image
 import ImageOps
 import ImageFilter
 import numpy
-from sklearn.feature_extraction import DictVectorizer
 
 class compose_extractors(object):
     def __init__(self, extractors):
@@ -38,24 +37,6 @@ class compose_extractors(object):
         for extractor in self.extractors:
             extractor(image, image_features)
         return image_features
-
-class FeatureHandler(object):
-    def __init__(self, extractor, dataset):
-        self.extractor = extractor
-        self.vectorizer = DictVectorizer()
-        digits = self.__extract_features(dataset[0])
-        self.train_digits = self.vectorizer.fit_transform(digits).toarray()
-        self.labels = dataset[1]
-
-    def __extract_features(self, values):
-        return map(self.extractor, values)
-
-    def sklearn_format_train(self):
-        return self.train_digits,self.labels
-
-    def sklearn_format_test(self, items):
-        features = self.__extract_features(items)
-        return self.vectorizer.transform(features).toarray()
 
 def border_detection(digit):
     digit.image = digit.image.filter(ImageFilter.FIND_EDGES)

@@ -1,4 +1,3 @@
-#!/usr/bin/python
 # Copyright (C) 2012 Rafael Cunha de Almeida <rafael@kontesti.me>
 #
 # Permission is hereby granted, free of charge, to any person obtaining
@@ -15,36 +14,25 @@
 # THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
 # EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 # MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR
-# OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+# IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
 # ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
 # OTHER DEALINGS IN THE SOFTWARE.
 
-import sys
+import os
+import re
 import Image
-import urllib2
-import StringIO
 
-from sklearn.externals import joblib
+def _get_files(base_dir):
+    return map(lambda x: os.path.join(base_dir, x), os.listdir(base_dir))
 
-def main():
-    model = joblib.load(sys.argv[1])
-    if len(sys.argv) > 2:
-        print_number(model, sys.argv[2])
-    else:
-        try:
-            while 1:
-                img_path = raw_input()
-                if img_path.startswith('http'):
-                    tmp = StringIO.StringIO(urllib2.urlopen(img_path).read())
-                    image = Image.open(tmp).convert('L')
-                else:
-                    with open(img_path) as f_image:
-                        image = Image.open(f_image).convert('L')
-                print model.decode_image(image)
-        except EOFError:
-            pass
-
-
-if __name__ == '__main__':
-    main()
+def load_captcha_dataset(base_dir):
+    files = _get_files(base_dir)
+    dataset = []
+    for file_path in files:
+        file_name = os.path.basename(file_path)
+        label = re.findall(r'^([0-9]+)-[0-9]+\..*$', file_name)[0]
+        with open(file_path) as f:
+            captcha = Image.open(f).convert('L')
+        dataset.append((captcha, label))
+    return zip(*dataset)  # unzip
