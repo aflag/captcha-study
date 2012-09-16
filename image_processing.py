@@ -21,7 +21,8 @@ import Image
 import ImageFilter
 import ImageDraw
 import ImageOps
-from vector import EasyVector, img2vec
+import numpy
+from vector import EasyVector
 
 class ImageRange(object):
     def __init__(self, x_min, y_min, x_max, y_max):
@@ -123,37 +124,37 @@ class DigitSeparator(object):
         self.image = image
 
     def __num_of_blacks(self, line):
-        count = 0
-        for color in line:
-            if color < 127:
-                count += 1
-        return count
+        boundary = numpy.ndarray(len(line))
+        boundary.fill(127)
+        return numpy.add.reduce(numpy.greater(boundary, line))
 
     def __image_into_blocks(self, image):
         width, height = image.size
-        blocks = {}
-        pix = image.load()
+        blocks = []
+        pix = numpy.asarray(image).transpose()
         for x in range(width):
-            column = []
-            for y in range(height):
-                column.append(_get(pix, image.size, (x,y)))
+            column = pix[x]
             if self.__num_of_blacks(column)/float(len(column)) > DigitSeparator.BLACK_THRESHOLD:
-                blocks[x] = DigitSeparator.EMPTY
+                blocks.append(DigitSeparator.EMPTY)
             else:
-                blocks[x] = DigitSeparator.FILLED
+                blocks.append(DigitSeparator.FILLED)
         return blocks
 
     def __first_half(self, image, x_range):
         height = image.size[1]
         width = abs(x_range[1] - x_range[0])
         i1 = image.crop((x_range[0], 0, x_range[1], height))
-        return img2vec(i1)
+        vec = numpy.zeros(image.size[0]*image.size[1])
+        vec[0:i1.size[0]*i1.size[1]] = i1.getdata()
+        return vec
 
     def __second_half(self, image, x_range):
         height = image.size[1]
         width = abs(x_range[1] - x_range[0])
         i2 = ImageOps.mirror(image.crop((x_range[0], 0, x_range[1], height)))
-        return img2vec(i2)
+        vec = numpy.zeros(image.size[0]*image.size[1])
+        vec[0:i2.size[0]*i2.size[1]] = i2.getdata()
+        return vec
 
     def __symmetryc_digits_fix(self, image, ranges):
         """a little help for 0 an 8"""
@@ -167,7 +168,7 @@ class DigitSeparator(object):
                 range2 = ranges[i+1]
                 v1 = self.__first_half(image, range1)
                 v2 = self.__second_half(image, range2)
-                if v1.euclidean_distance(v2) < 2200:
+                if numpy.linalg.norm(v1 - v2) < 2200:
                     merged_ranges.append((range1[0], range2[1]))
                     skip = True
                 else:
@@ -240,12 +241,12 @@ class DigitSeparator(object):
     def __ranges(self, blocks):
         ranges = []
         state = DigitSeparator.EMPTY
-        for x,value in sorted(blocks.items()):
+        for i,value in enumerate(blocks):
             if value == DigitSeparator.FILLED and state == DigitSeparator.EMPTY:
-                first_digit = x
+                first_digit = i
                 state = DigitSeparator.FILLED
             elif value == DigitSeparator.EMPTY and state == DigitSeparator.FILLED:
-                ranges.append((first_digit, x))
+                ranges.append((first_digit, i))
                 state = DigitSeparator.EMPTY
         return ranges
 
