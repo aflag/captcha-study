@@ -22,7 +22,6 @@ import ImageFilter
 import ImageDraw
 import ImageOps
 import numpy
-from vector import EasyVector
 
 class ImageRange(object):
     def __init__(self, x_min, y_min, x_max, y_max):

@@ -20,70 +20,60 @@
 import Image
 import ImageOps
 import numpy
-from vector import EasyVector
-from image_processing import border_detection, reduce_noise
+from image_processing import border_detection
+from sklearn.feature_extraction import DictVectorizer
+
+class compose_extractors(object):
+    def __init__(self, extractors):
+        self.extractors = extractors
+
+    def __call__(self, arg):
+        image_features = {}
+        if isinstance(arg, str):
+            file_path = arg
+            with open(file_path) as f:
+                image = Image.open(f).convert("L")
+        else:
+            image = arg
+        for extractor in self.extractors:
+            extractor(image, image_features)
+        return image_features
 
 class FeatureHandler(object):
-    def __init__(self, strategy, training_dataset):
-        self.strategy = strategy
-        self.dataset = {}
-        self.feature_names = set()
-        for label, values in training_dataset.items():
-            self.dataset[label] = self.__extract_vectors(values)
-            for features in self.dataset[label]:
-                self.feature_names.update(features)
-        self.feature_names = list(self.feature_names)
-        self.inverted_feature_names = {}
-        for i,name in enumerate(self.feature_names):
-            self.inverted_feature_names[name] = i
+    def __init__(self, extractor, dataset):
+        self.extractor = extractor
+        self.vectorizer = DictVectorizer()
+        digits = self.__extract_features(dataset[0])
+        self.train_digits = self.vectorizer.fit_transform(digits).toarray()
+        self.labels = dataset[1]
 
-    def __extract_vectors(self, values):
-        return map(self.strategy, values)
-
-    def __format_vector(self, vector):
-        new_item = [0.0]*len(self.feature_names)
-        for feature_name,feature_value in vector.items():
-            feature_position = self.inverted_feature_names.get(feature_name)
-            if feature_position is not None:
-                new_item[feature_position] = feature_value
-        return new_item
+    def __extract_features(self, values):
+        return map(self.extractor, values)
 
     def sklearn_format_train(self):
-        labels = []
-        vectors = []
-        for label,values in self.dataset.items():
-            for vector in values:
-                vectors.append(self.__format_vector(vector))
-                labels.append(label)
-        return vectors,labels
+        return self.train_digits,self.labels
 
     def sklearn_format_test(self, items):
-        vecs = self.__extract_vectors(items)
-        vectors = []
-        for vector in vecs:
-            vectors.append(self.__format_vector(vector))
-        return vectors
+        features = self.__extract_features(items)
+        return self.vectorizer.transform(features).toarray()
 
 def border(callback):
     return lambda digit,features: callback(border_detection(digit), features, prefix='border-')
-
-def noiseless(callback):
-    return lambda digit,features: callback(reduce_noise(digit), features, prefix='noiseless-')
 
 def is_white(color):
     return color > 230
 
 def x_histogram(digit, features, prefix=''):
     width,height = digit.image.size
+    pix = numpy.asarray(digit.image).transpose()
     for x in range(width):
-        for y in range(height):
-            features[prefix+"x-histogram-"+str(x)] += digit.pix[x,y]
+        features[prefix+'x-histogram-'+str(x)] = numpy.add.reduce(pix[x])
 
 def y_histogram(digit, features, prefix=''):
     width,height = digit.image.size
+    pix = numpy.asarray(digit.image)
     for y in range(height):
-        for x in range(width):
-            features[prefix+'y-histogram-'+str(y)] += digit.pix[x,y]
+        features[prefix+'y-histogram-'+str(y)] = numpy.add.reduce(pix[y])
 
 def positions(digit, features, prefix=''):
     width,height = digit.image.size
@@ -162,20 +152,3 @@ def horizontal_symmetry(digit, features, prefix=''):
     second_half = numpy.array(ImageOps.flip(digit.image.crop((0, height/2, width, height))).getdata())
     second_half = second_half[:len(first_half)]
     features[prefix+'horizontal_symmetry'] = numpy.linalg.norm(first_half-second_half)
-
-
-class use_features(object):
-    def __init__(self, features_to_use):
-        self.features_to_use = features_to_use
-
-    def __call__(self, arg):
-        features = EasyVector()
-        if isinstance(arg, str):
-            file_path = arg
-            with open(file_path) as f:
-                image = Image.open(f).convert("L")
-        else:
-            image = arg
-        for feature in self.features_to_use:
-            feature(image, features)
-        return features
