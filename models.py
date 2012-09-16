@@ -40,8 +40,23 @@ class ScikitWrapper(object):
     def predict(self, items):
         return self.engine.predict(self.feature_handler.sklearn_format_test(items))
 
+ALL_EXTRACTORS = [
+        x_histogram,
+        y_histogram,
+        positions,
+        number_of_whites,
+        number_of_pixels,
+        horizontal_silhouette,
+        reversed_horizontal_silhouette,
+        vertical_silhouette,
+        reversed_vertical_silhouette,
+        middle_silhouette,
+        vertical_symmetry,
+        horizontal_symmetry,
+]
+
 def NaiveBayes(dataset):
-    return ScikitWrapper(naive_bayes.MultinomialNB(), [reversed_horizontal_silhouette, horizontal_silhouette], dataset)
+    return ScikitWrapper(naive_bayes.MultinomialNB(), [positions], dataset)
 
 def DecisionTree(dataset):
     return ScikitWrapper(tree.DecisionTreeRegressor(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
@@ -50,10 +65,10 @@ def SGD(dataset):
     return ScikitWrapper(linear_model.SGDClassifier(loss="hinge", penalty="l2"), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def SVM(dataset):
-    return ScikitWrapper(svm.SVC(kernel='poly', degree=2), [positions, number_of_pixels], dataset)
+    return ScikitWrapper(svm.SVC(kernel='poly', degree=2), [positions], dataset)
 
 def NN(dataset):
     return ScikitWrapper(NearestCentroid(), [positions, reversed_horizontal_silhouette, horizontal_silhouette], dataset)
 
 def RandomForest(dataset):
-    return ScikitWrapper(ensemble.RandomForestClassifier(n_estimators=300, n_jobs=2), [x_histogram, y_histogram, positions, number_of_whites, number_of_pixels, horizontal_silhouette, reversed_horizontal_silhouette, vertical_silhouette, reversed_vertical_silhouette, middle_silhouette, vertical_symmetry, horizontal_symmetry], dataset)
+    return ScikitWrapper(ensemble.RandomForestClassifier(n_estimators=50, n_jobs=2), ALL_EXTRACTORS, dataset)
