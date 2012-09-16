@@ -26,11 +26,12 @@ from sklearn import svm
 from sklearn import ensemble
 from sklearn.neighbors.nearest_centroid import NearestCentroid
 from sklearn import decomposition
+import time
 
 class ScikitWrapper(object):
-    def __init__(self, engine, features_to_use, dataset):
+    def __init__(self, engine, extractors, dataset):
         self.feature_handler = FeatureHandler(
-                use_features(features_to_use),
+                compose_extractors(extractors),
                 dataset)
         self.engine = engine
         vector, labels = self.feature_handler.sklearn_format_train()
