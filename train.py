@@ -78,7 +78,7 @@ def main():
     else:
         train_dataset, test_dataset = generate_datasets(sys.argv[1])
     t0 = time.time()
-    model = RandomForest(train_dataset)
+    model = SVM(train_dataset)
     print 'Train time:', time.time() - t0
     if len(sys.argv) > 2:
         joblib.dump(model, sys.argv[2])

@@ -19,8 +19,8 @@
 
 import Image
 import ImageOps
+import ImageFilter
 import numpy
-from image_processing import border_detection
 from sklearn.feature_extraction import DictVectorizer
 
 class compose_extractors(object):
