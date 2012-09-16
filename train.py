@@ -21,39 +21,27 @@ import sys
 import random
 
 from models import *
-from sklearn.externals import joblib
 from image_processing import DigitSeparator
-
 from dataset import load_captcha_dataset
 
-def generate_datasets(base_dir):
-    dataset = load_captcha_dataset(base_dir)
-    ziped_dataset = zip(*dataset)
-    random.shuffle(ziped_dataset)
-    dataset = zip(*ziped_dataset)
-    train_size = int(0.4*len(ziped_dataset))
-    train_dataset = (dataset[0][:train_size], dataset[1][:train_size])
-    test_dataset = (dataset[0][train_size:], dataset[1][train_size:])
-    print "Number of trains:", len(train_dataset), "Number of tests:", len(test_dataset)
-    return train_dataset, test_dataset
+from sklearn.externals import joblib
+from sklearn import cross_validation
 
-def largest_label_size(dataset):
-    return max(map(len, dataset.values()))
+import numpy
 
 def main():
+    dataset = load_captcha_dataset(sys.argv[1])
+    model = CaptchaDecoder()
     if len(sys.argv) > 2:
-        train_dataset = load_captcha_dataset(sys.argv[1])
-    else:
-        train_dataset, test_dataset = generate_datasets(sys.argv[1])
-    t0 = time.time()
-    model = CaptchaDecoder(train_dataset[0], train_dataset[1])
-    print 'Train time:', time.time() - t0
-    if len(sys.argv) > 2:
+        t0 = time.time()
+        model.fit(dataset[0], dataset[1])
+        print 'Train time:', time.time() - t0
         joblib.dump(model, sys.argv[2])
     else:
         t0 = time.time()
-        print 'Matches:', model.score(test_dataset[0], test_dataset[1])
-        print 'Test time:', time.time() - t0
+        scores = cross_validation.cross_val_score(model, numpy.array(dataset[0], dtype=object), dataset[1], cv=100)
+        print 'Accuracy: %0.2f (+/- %0.2f)' % (scores.mean(), scores.std()/2)
+        print 'Validation time:', time.time() - t0
 
 if __name__ == '__main__':
     main()

@@ -54,10 +54,9 @@ def forest_engine():
     return ensemble.RandomForestClassifier(n_estimators=50, n_jobs=2)
 
 class CaptchaDecoder(object):
-    def __init__(self, x, y):
+    def __init__(self, *args, **kwargs):
         self.engine = svm_engine()
         self.feature_extractor = compose_extractors(SVM_EXTRACTORS)
-        self.fit(x,y)
 
     def fit(self, x, y):
         digits = []
@@ -89,4 +88,4 @@ class CaptchaDecoder(object):
         return self.predict([image])[0]
 
     def get_params(self, *args, **kwargs):
-        return self.engine(*args, **kwargs)
+        return self.engine.get_params(*args, **kwargs)
