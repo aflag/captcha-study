@@ -19,8 +19,8 @@
 
 import Image
 import ImageOps
-import pickle
-from vector import EasyVector, img2vec
+import numpy
+from vector import EasyVector
 from image_processing import border_detection, reduce_noise
 
 class FeatureHandler(object):
@@ -93,16 +93,16 @@ def positions(digit, features, prefix=''):
 
 def number_of_whites(digit, features, prefix=''):
     width,height = digit.image.size
+    counter = 0
     for x in range(width):
         for y in range(height):
             if is_white(digit.pix[x,y]):
-                features[prefix+'number_of_whites'] += 1
+                counter += 1
+    features[prefix+'number_of_whites'] = counter
 
 def number_of_pixels(digit, features, prefix=''):
     width,height = digit.image.size
-    for x in range(width):
-        for y in range(height):
-            features[prefix+'number_of_pixels'] += 1
+    features[prefix+'number_of_pixels'] = width * height
 
 def horizontal_silhouette(digit, features, prefix=''):
     width,height = digit.image.size
@@ -151,15 +151,17 @@ def middle_silhouette(digit, features, prefix=''):
 
 def vertical_symmetry(digit, features, prefix=''):
     width,height = digit.image.size
-    first_half = img2vec(digit.image.crop((0, 0, width/2, height)))
-    second_half = img2vec(ImageOps.mirror(digit.image.crop((width/2, 0, width, height))))
-    features[prefix+'vertical_symmetry'] = first_half.euclidean_distance(second_half)
+    first_half = numpy.array(digit.image.crop((0, 0, width/2, height)).getdata())
+    second_half = numpy.array(ImageOps.mirror(digit.image.crop((width/2, 0, width, height)).getdata()))
+    second_half = second_half[:len(first_half)]
+    features[prefix+'vertical_symmetry'] = numpy.linalg.norm(first_half-second_half)
 
 def horizontal_symmetry(digit, features, prefix=''):
     width,height = digit.image.size
-    first_half = img2vec(digit.image.crop((0, 0, width, height/2)))
-    second_half = img2vec(ImageOps.flip(digit.image.crop((0, height/2, width, height))))
-    features[prefix+'horizontal_symmetry'] = first_half.euclidean_distance(second_half)
+    first_half = numpy.array(digit.image.crop((0, 0, width, height/2)).getdata())
+    second_half = numpy.array(ImageOps.flip(digit.image.crop((0, height/2, width, height))).getdata())
+    second_half = second_half[:len(first_half)]
+    features[prefix+'horizontal_symmetry'] = numpy.linalg.norm(first_half-second_half)
 
 
 class use_features(object):
