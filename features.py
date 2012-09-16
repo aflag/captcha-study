@@ -42,10 +42,10 @@ class FeatureHandler(object):
 
     def __format_vector(self, vector):
         new_item = [0.0]*len(self.feature_names)
-        for feature_name in vector:
-            feature_position = self.inverted_feature_names.get(feature_name )
+        for feature_name,feature_value in vector.items():
+            feature_position = self.inverted_feature_names.get(feature_name)
             if feature_position is not None:
-                new_item[feature_position] = vector[feature_name]
+                new_item[feature_position] = feature_value
         return new_item
 
     def sklearn_format_train(self):
@@ -89,7 +89,7 @@ def positions(digit, features, prefix=''):
     width,height = digit.image.size
     for x in range(width):
         for y in range(height):
-            features[prefix+'pos-'+str(x*height + y)] += digit.pix[x,y]
+            features[prefix+'pos-'+str(x*height + y)] = digit.pix[x,y]
 
 def number_of_whites(digit, features, prefix=''):
     width,height = digit.image.size

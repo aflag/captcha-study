@@ -64,6 +64,9 @@ class EasyVector(object):
     def __repr__(self):
         return repr(self.vec)
 
+    def items(self, *args, **kwargs):
+        return self.vec.items(*args, **kwargs)
+
     def euclidean_distance(self, other):
         result = 0
         for x, value in other.vec.items():
