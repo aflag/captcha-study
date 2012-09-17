@@ -24,17 +24,6 @@ import ImageDraw
 import ImageOps
 import numpy
 
-class ImageRange(object):
-    def __init__(self, x_min, y_min, x_max, y_max):
-        self.x_min = x_min
-        self.y_min = y_min
-        self.x_max = x_max
-        self.y_max = y_max
-
-    def contains(self, x, y):
-        return x < self.x_max and x >= self.x_min and y < self.y_max \
-                and y >= self.y_min
-
 def _get(pix, (width,height), coord, default=0):
     x, y = coord
     if (x>=width) or (x<0) or (y>=height) or (y<0):
