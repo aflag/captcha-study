@@ -39,7 +39,7 @@ def main():
         joblib.dump(model, sys.argv[2])
     else:
         t0 = time.time()
-        scores = cross_validation.cross_val_score(model, numpy.array(dataset[0], dtype=object), dataset[1], cv=50)
+        scores = cross_validation.cross_val_score(model, numpy.array(dataset[0], dtype=object), dataset[1], cv=5)
         print 'Accuracy: %0.2f (+/- %0.2f)' % (scores.mean(), scores.std()/2)
         print 'Validation time:', time.time() - t0
 

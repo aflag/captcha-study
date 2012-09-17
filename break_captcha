@@ -41,7 +41,7 @@ def main():
                 else:
                     with open(img_path) as f_image:
                         image = Image.open(f_image).convert('L')
-                print model.decode_image(image)
+                print model.predict(image)
         except EOFError:
             pass
 

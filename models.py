@@ -27,8 +27,6 @@ from sklearn import svm
 from sklearn import ensemble
 from sklearn.feature_extraction import DictVectorizer
 
-class ModelUnavailable(Exception):
-    pass
 
 ALL_EXTRACTORS = [
         x_histogram,
@@ -69,23 +67,26 @@ class CaptchaDecoder(object):
         train_array = self.vectorizer.fit_transform(digits).toarray()
         self.engine.fit(train_array, labels)
 
+    def __make_prediction(self, image):
+        separator = DigitSeparator(image) 
+        features = map(self.feature_extractor, separator.get_digits())
+        digits = self.vectorizer.transform(features).toarray()
+        labels = self.engine.predict(digits)
+        return ''.join(map(lambda x: '%d'%x, labels))
+
     def predict(self, x):
-        prediction = []
-        for image in x:
-           separator = DigitSeparator(image) 
-           features = map(self.feature_extractor, separator.get_digits())
-           digits = self.vectorizer.transform(features).toarray()
-           labels = self.engine.predict(digits)
-           prediction.append(''.join(map(lambda x: '%d'%x, labels)))
-        return prediction
+        if not hasattr(x, '__iter__'):
+            return self.__make_prediction(x)
+        else:
+            prediction = []
+            for image in x:
+                prediction.append(self.__make_prediction(image))
+            return prediction
 
     def score(self, data, labels):
         pred_labels = self.predict(data)
         matches = sum(map(lambda (x,y): x==y, zip(labels, pred_labels)))
         return float(matches)/len(labels)
-
-    def decode_image(self, image):
-        return self.predict([image])[0]
 
     def get_params(self, *args, **kwargs):
         return self.engine.get_params(*args, **kwargs)
